@@ -11,6 +11,6 @@ class functions():
         time_now = datetime.now()
 
         api_keys = session.query(Apikeys).all()
-        print(api_keys)
+        print(dict(api_keys))
 
         return {}
