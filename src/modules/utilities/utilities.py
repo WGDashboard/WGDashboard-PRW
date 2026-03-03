@@ -10,12 +10,10 @@ class utilities():
         '''
         Helper function to grab a specific part of the config
         '''
-
-        log.debug(f'searching for section: {filter_keyword}')
-        for section in config_contents:
-            if str(section).lower() == filter_keyword.lower():
-                return True, dict(config_contents[section].items())
-
+        for section_name, section_values in config_contents.items():
+            if str(section_name).lower() == filter_keyword.lower():
+                if isinstance(section_values, dict):
+                    return True, dict(section_values)
         return False, {}
 
     @staticmethod
@@ -24,7 +22,6 @@ class utilities():
         Make the directory if it does not exist yet, return only true if the directory was missing and created.
         '''
 
-        log.debug(f'checking if the directory at: {path} exists')
         if os.path.exists(path) and os.path.isdir(path):
             return True
         

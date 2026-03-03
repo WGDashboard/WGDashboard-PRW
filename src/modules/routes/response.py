@@ -1,12 +1,15 @@
 #!/bin/env python3
 
 import flask
+import json
 
-def make_resp_obj(success: bool = True, message: str = "", data: dict = {}, http_code: int = 200) -> flask.wrappers.Response:
-    response = flask.make_response({
-        "message": message,
-        "status": success,
-        "data": data
-    }, http_code)
+def make_resp_obj(message: str = "", data: dict = {}, http_code: int = 200) -> flask.wrappers.Response:
+    resp_json_data = json.dumps({
+        'message': message,
+        'data': data
+    })
+    
+    response = flask.make_response(resp_json_data, http_code)
+    response.mimetype = 'application/json'
 
     return response

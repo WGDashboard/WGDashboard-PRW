@@ -6,6 +6,7 @@ from logging.config import dictConfig
 import flask
 import json
 import os
+import secrets
 
 from modules.config.reader import reader
 from modules.database.database import database
@@ -35,11 +36,17 @@ if __name__ == '__main__':
     ok, engine, session = database.create_session(config_database)
     ok = database.ensure_contents(engine)
 
+    prefix = config_server.get('app_prefix', '')
+
     # Configure the Flask app
     app = flask.Flask("WGDashboard", template_folder=os.path.abspath("./static/dist/WGDashboardAdmin"))
-    app.register_blueprint(routes)
+    app.register_blueprint(routes, url_prefix=prefix)
 
     app.wgd_config = config_contents
+
+    app.secret_key = secrets.token_urlsafe(64)
+    app.config['SESSION_TYPE'] = 'filesystem'
+
     app.engine = engine
     app.db_session = session
 
@@ -50,4 +57,5 @@ if __name__ == '__main__':
         debug=debug_enabled,
         host=hostname,
         port=port,
-        use_reloader=False)
+        use_reloader=False
+    )

@@ -1,57 +1,101 @@
 #!/bin/env python3
 
+import logging as log
+
 import flask
 
+import json
+
 from .response import make_resp_obj
+from .utilities import helpers
+
 from ..database.functions import functions
-from ..utilities.utilities import utilities
+from ..utilities.utilities import utilities as util
 
 routes = flask.Blueprint("routes", __name__)
+
+white_list = [
+    "/client",
+    "/static/",
+    "/fileDownload",
+    "authenticate",
+    "getDashboardConfiguration",
+    "getDashboardTheme",
+    "getDashboardVersion",
+    "sharePeer/get",
+    "isTotpEnabled",
+    "locale",
+    "validateAuthentication",
+]
 
 @routes.before_request
 def auth_required():
     if flask.request.method.lower() == "options":
-        return make_resp_obj(True, "", flask.jsonify({"status": True}), 200)
+        return make_resp_obj("", {"status": True}, 200)
 
-    ok, config_server = utilities.filter_config(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = util.filter_config(flask.current_app.wgd_config, 'SERVER')
     if not ok:
-        return make_resp_obj(False, "Internal Error", {}, 500)
+        return make_resp_obj("Internal error", {}, 500)
 
-    auth_required = config_server.get('auth_req', True) # Set to true for a safe default
-
-    if not auth_required:
-        return
-    
-    whiteList = [
-        '/client',
-        '/static/',
-        '/fileDownload',
-        'validateAuthentication',
-        'authenticate',
-        'getDashboardConfiguration',
-        'getDashboardTheme',
-        'getDashboardVersion',
-        'sharePeer/get',
-        'isTotpEnabled',
-        'locale'
-    ]
-
-    request_path = flask.request.path
-    http_headers = flask.request.headers
-    api_key = http_headers.get("wgdashboard-apikey")
-
+    auth_required_flag = config_server.get('auth_req', True)
     api_key_enabled = config_server.get("wgdashboard_apikey", False)
-    registered_api_keys = functions.retrieve_api_keys(flask.current_app.db_session)
 
-    if not api_key:
-        response = make_resp_obj()
-        return response
+    if not auth_required_flag:
+        return
 
-@routes.route("/")
+    path = flask.request.path
+    api_key = flask.request.headers.get("wgdashboard-apikey")
+
+    if api_key and api_key_enabled:
+        if helpers.is_valid_api_key(api_key):
+            return
+        else:
+            return make_resp_obj("WGDashboard API-key does not exist or is invalid/expired", {}, 401)
+
+    if flask.session.get("role") == "admin":
+        return
+
+    if helpers.is_path_allowed(path, white_list, flask.session):
+        return
+
+    return make_resp_obj("Unauthorized access", {}, 401)
+
+@routes.route('/api/authenticate', methods=["POST"])
+def api_authenticate():
+    ok, config_server = util.filter_config(flask.current_app.wgd_config, 'SERVER')
+    if not ok:
+        return make_resp_obj("Internal error", {}, 500)
+
+    auth_required_flag = config_server.get('auth_req', True)
+
+    if not auth_required_flag:
+        _, config_other = util.filter_config(flask.current_app.wgd_config, 'OTHER')
+
+        return make_resp_obj(
+            "Login successful, no authentication required",
+            {"welcome_session": config_other.get("welcome_session", False)},
+            200
+        )
+
+    data = request.get_json()
+    if not data:
+        return make_resp_obj("Invalid request body", {}, 400)
+    
+    return make_resp_obj("Authentication required", {}, 401)
+
+@routes.route('/', methods=["GET"])
 def index():
-    return make_resp_obj(True, "/ Endpoint", flask.jsonify({"message": "Hello from routes file!"}), 200)
+    return make_resp_obj(
+        "Pong from the /",
+        {},
+        200
+    )
 
-@routes.route("/health")
-@routes.route("/healthz")
+@routes.route('/health', methods=["GET"])
+@routes.route('/healthz', methods=["GET"])
 def health():
-    return make_resp_obj(True, "Health Endpoint", flask.jsonify({"status": "ok"}), 200)
+    return make_resp_obj(
+        "Health Endpoint",
+        {"status": "ok"},
+        200
+    )

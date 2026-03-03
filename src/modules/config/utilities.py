@@ -49,6 +49,15 @@ class checks():
             config_dict = {}
             for section in config.sections():
                 items = dict(config.items(section))
+
+                for key, value in items.items():
+                    if value.strip().lower() == 'true':
+                        items[key] = True
+                    elif value.strip().lower() == 'false':
+                        items[key] = False
+                    else:
+                        items[key] = value
+
                 config_dict[section] = items
 
             return True, config_dict

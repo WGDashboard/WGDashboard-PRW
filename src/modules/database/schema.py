@@ -24,11 +24,19 @@ class User(Base):
 class Apikeys(Base):
     __tablename__ = 'apikeys'
 
-    apikey_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, index=True)
-    apikey_data = sqlalchemy.Column(sqlalchemy.String)
+    key_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, index=True)
+    key_data = sqlalchemy.Column(sqlalchemy.String)
 
-    apikey_creation = sqlalchemy.Column(sqlalchemy.String)
-    apikey_expiration = sqlalchemy.Column(sqlalchemy.String)
+    key_creation = sqlalchemy.Column(sqlalchemy.String)
+    key_expiration = sqlalchemy.Column(sqlalchemy.String)
+
+    def to_dict(self):
+        return {
+            'id': self.key_id,
+            'key': self.key_data,
+            'creation': self.key_creation,
+            'expiration': self.key_expiration,
+        }
 
 class Wireguard(Base):
     __tablename__ = 'wireguard_interfaces'
