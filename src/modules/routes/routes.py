@@ -3,8 +3,8 @@
 import logging as log
 
 import flask
-
 import json
+import os
 
 from .response import make_resp_obj
 from .utilities import helpers
@@ -69,7 +69,9 @@ def api_authenticate():
     auth_required_flag = config_server.get('auth_req', True)
 
     if not auth_required_flag:
-        _, config_other = util.filter_config(flask.current_app.wgd_config, 'OTHER')
+        ok, config_other = util.filter_config(flask.current_app.wgd_config, 'OTHER')
+        if not ok:
+            return make_resp_obj("Internal error", {}, 500)
 
         return make_resp_obj(
             "Login successful, no authentication required",
@@ -77,19 +79,23 @@ def api_authenticate():
             200
         )
 
-    data = request.get_json()
+    data = flask.request.get_json()
     if not data:
         return make_resp_obj("Invalid request body", {}, 400)
     
     return make_resp_obj("Authentication required", {}, 401)
 
-@routes.route('/', methods=["GET"])
-def index():
-    return make_resp_obj(
-        "Pong from the /",
-        {},
-        200
-    )
+@routes.route("/", defaults={"path": ""})
+@routes.route("/<path:path>")
+def catch_all(path):
+    static_folder = flask.current_app.static_folder
+    template_folder = flask.current_app.template_folder
+
+    file_path = os.path.join(static_folder, path)
+    if os.path.isfile(file_path):
+        return flask.send_from_directory(static_folder, path)
+
+    return flask.send_from_directory(template_folder, "index.html")
 
 @routes.route('/health', methods=["GET"])
 @routes.route('/healthz', methods=["GET"])

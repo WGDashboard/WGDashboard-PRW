@@ -39,7 +39,11 @@ if __name__ == '__main__':
     prefix = config_server.get('app_prefix', '')
 
     # Configure the Flask app
-    app = flask.Flask("WGDashboard", template_folder=os.path.abspath("./static/dist/WGDashboardAdmin"))
+    app = flask.Flask(
+        "WGDashboard",
+        template_folder=os.path.abspath("./static/dist/WGDashboardAdmin"),
+        static_folder=os.path.abspath("./static/dist/WGDashboardAdmin")
+    )
     app.register_blueprint(routes, url_prefix=prefix)
 
     app.wgd_config = config_contents
