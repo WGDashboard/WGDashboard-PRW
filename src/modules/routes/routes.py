@@ -5,27 +5,31 @@ import logging as log
 import flask
 import json
 import os
+import werkzeug
 
 from .response import make_resp_obj
 from .utilities import helpers
+from .locale import localeman
 
 from ..database.functions import functions
-from ..utilities.utilities import utilities as util
+from ..config.config import config
 
 routes = flask.Blueprint("routes", __name__)
 
 white_list = [
+    "/", # we need to whitelist /
     "/client",
     "/static/",
     "/fileDownload",
-    "authenticate",
+    "/api/authenticate",
+    "/api/locale",
     "getDashboardConfiguration",
     "getDashboardTheme",
     "getDashboardVersion",
     "sharePeer/get",
     "isTotpEnabled",
-    "locale",
     "validateAuthentication",
+    "favicon.ico",
 ]
 
 @routes.before_request
@@ -33,7 +37,7 @@ def auth_required():
     if flask.request.method.lower() == "options":
         return make_resp_obj("", {"status": True}, 200)
 
-    ok, config_server = util.filter_config(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
         return make_resp_obj("Internal error", {}, 500)
 
@@ -62,14 +66,14 @@ def auth_required():
 
 @routes.route('/api/authenticate', methods=["POST"])
 def api_authenticate():
-    ok, config_server = util.filter_config(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
         return make_resp_obj("Internal error", {}, 500)
 
     auth_required_flag = config_server.get('auth_req', True)
 
     if not auth_required_flag:
-        ok, config_other = util.filter_config(flask.current_app.wgd_config, 'OTHER')
+        ok, config_other = config.filter(flask.current_app.wgd_config, 'OTHER')
         if not ok:
             return make_resp_obj("Internal error", {}, 500)
 
@@ -89,23 +93,23 @@ def api_authenticate():
 @routes.route('/<path:path>')
 def index_handler(path):
     static_folder = flask.current_app.static_folder
-    template_folder = flask.current_app.template_folder
+    try:
+        safe_path = werkzeug.utils.safe_join(static_folder, path)
+        if not safe_path or not os.path.exists(safe_path):
+            raise Exception()
+        rel_path = os.path.relpath(safe_path, static_folder)
+        return flask.send_from_directory(flask.current_app.static_folder, rel_path)
 
-    safe_path = os.path.normpath(path)
+    except Exception:
+        print(f"ROUTE NOT INPLEMENTED: {path}")
+        return flask.send_from_directory(flask.current_app.static_folder, "index.html")
 
-    if safe_path.startswith('..'):
-        return make_resp_obj("Invalid request", {}, 400)
+@routes.route('/api/locale')
+def api_locale_handler():
+    locale_manager = localeman()
+    locale_data = locale_manager.get_language()
 
-    file_path = os.path.join(static_folder, safe_path)
-    if os.path.isfile(file_path):
-        return flask.send_from_directory(static_folder, safe_path)
-
-    return flask.send_from_directory(flask.current_app.static_folder, "index.html")
-
-@routes.route("/client")
-@routes.route("/clients")
-def client_handler():
-    return flask.send_from_directory(CLIENT_DIST, "client.html")
+    return make_resp_obj("", locale_data, 200)
 
 @routes.route('/health', methods=["GET"])
 @routes.route('/healthz', methods=["GET"])

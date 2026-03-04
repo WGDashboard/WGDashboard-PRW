@@ -5,7 +5,7 @@ import logging as log
 import configparser as cp
 import os
 
-class checks():
+class config_utilities():
     @staticmethod
     def search_known_paths() -> tuple[bool, str]:
         '''
