@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "Running vite build..."
-if vite build; then
+if npm run build; then
   echo "Vite build successful."
 else
   echo "Vite build failed. Exiting."
@@ -8,7 +8,7 @@ else
 fi
 echo "Checking for changes to commit..."
 if git diff-index --quiet HEAD --; then
-  
+
   if git commit -a; then
       echo "Git commit successful."
     else
