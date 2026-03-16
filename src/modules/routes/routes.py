@@ -17,6 +17,9 @@ from .locale import localeman
 from ..database.functions import functions
 from ..config.config import config
 
+from ..utilities.utilities import utilities
+from ..utilities.system_status import system_status
+
 routes = flask.Blueprint("routes", __name__)
 
 white_list = [
@@ -158,19 +161,9 @@ def api_authenticate():
     return make_resp_obj(False, error_msg, {"status": False}, 401)
 
     if totp_enabled:
-        return make_resp_obj(
-            False,
-            "Sorry, your username, password or OTP is incorrect.",
-            {},
-            401
-        )
+            return make_resp_obj(False, "Sorry, your username, password or OTP is incorrect.", {}, 401)
     else:
-        return make_resp_obj(
-            False,
-            "Sorry, your username or password is incorrect.",
-            {},
-            401
-        )
+        return make_resp_obj(False, "Sorry, your username or password is incorrect.", {}, 401)
 
 @routes.route('/')
 def index_handler():
@@ -216,6 +209,11 @@ def api_retrieve_dashboard_theme():
 
     return make_resp_obj(True, "", config_server.get("wgdashboard_theme"), 200)
 
+@routes.route('/api/getDashboardUpdate')
+def api_retrieve_dashboard_update():
+    utilities.update_available()
+    return make_resp_obj()
+
 @routes.route('/api/getDashboardConfiguration')
 def api_retrieve_dashboard_config():
     return make_resp_obj(data=flask.current_app.wgd_config)
@@ -231,11 +229,31 @@ def api_totp_status():
     
     return make_resp_obj(True, "", data, 200)
 
+@routes.route('/api/getWireguardConfigurations')
+def api_retrieve_wireguard_configurations():
+    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    if not ok:
+        log.error("failed to filter the config in-memory")
+        return make_resp_obj(False, 'Internal error', {}, 500)
+
+    if "wg_conf_path" not in config_server:
+        return make_resp_obj(False, 'Internal error', {}, 500)
+
+    wireguard_path = config_server.get('wg_conf_path', '/etc/wireguard')
+    if os.path.exists(wireguard_path):
+        present_confs = os.listdir(wireguard_path)
+        present_confs.sort()
+
+        log.info(present_confs)
+    
+    return make_resp_obj(True, 'Wireguard', {}, 200)
+
+@routes.route('/api/systemStatus')
+def api_system_status():
+    status = system_status()
+    return make_resp_obj(True, "", status.to_json(), 200)
+
 @routes.route('/health', methods=["GET"])
 @routes.route('/healthz', methods=["GET"])
 def health_handler():
-    return make_resp_obj(True,
-        "Health Endpoint",
-        {"status": "ok"},
-        200
-    )
+    return make_resp_obj(True, "Health Endpoint", {"status": "ok"}, 200)

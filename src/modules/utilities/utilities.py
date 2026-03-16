@@ -3,6 +3,7 @@
 import logging as log
 
 import os
+import urllib.request
 
 class utilities():
     @staticmethod
@@ -19,5 +20,22 @@ class utilities():
             return True
 
         except Exception as err:
-            log.critical('failed to create directory')
+            log.error('failed to create directory')
             return False
+    
+    @staticmethod
+    def update_available() -> bool:
+        request = urllib.request.urlopen("https://api.github.com/repos/WGDashboard/WGDashboard/releases/latest", timeout=5).read()
+
+        data = json.loads(request)
+        log.info(data)
+
+    @staticmethod
+    def ProtocolsEnabled() -> list[str]:
+        from shutil import which
+        protocols = []
+        if which('awg') is not None and which('awg-quick') is not None:
+            protocols.append("awg")
+        if which('wg') is not None and which('wg-quick') is not None:
+            protocols.append("wg")
+        return protocols

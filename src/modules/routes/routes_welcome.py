@@ -72,6 +72,42 @@ def api_welcome_get_totp():
             log.error("failed to update the key in the configuration file")
             return make_resp_obj(False, 'Internal error', {}, 500)
         
+        # Very important to also refresh the config in-memory
+        ok, flask.current_app.wgd_config = config.read()
+        if not ok:
+            log.error("failed to refresh the in-memory configuration")
+            return make_resp_obj(False, 'Internal error', {}, 500)
+
         return make_resp_obj(True, '', pyotp.totp.TOTP(totp_key).provisioning_uri(issuer_name="WGDashboard Admin"))
 
     return make_resp_obj(False, 'Internal error', {}, 500)
+
+@routes_welcome.route('/api/Welcome_VerifyTotpLink', methods=["POST"])
+def api_welcome_verify_totp():
+    ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
+    if not ok:
+        log.error("failed to filter the config in-memory")
+        return make_resp_obj(False, 'Internal error', {}, 500)
+    
+    req_data = flask.request.get_json()
+    totp_code = pyotp.TOTP(config_account['totp_key'], interval=30).now()
+
+    totp_match = totp_code == req_data['totp']
+    if totp_match:
+        ok = config.update('ACCOUNT', 'totp_verified', True)
+        if not ok:
+            log.error("failed to update the key in the configuration file")
+            return make_resp_obj(False, 'Internal error', {}, 500)
+
+        ok = config.update('ACCOUNT', 'enable_totp', True)
+        if not ok:
+            log.error("failed to update the key in the configuration file")
+            return make_resp_obj(False, 'Internal error', {}, 500)
+
+        # Very important to also refresh the config in-memory
+        ok, flask.current_app.wgd_config = config.read()
+        if not ok:
+            log.error("failed to refresh the in-memory configuration")
+            return make_resp_obj(False, 'Internal error', {}, 500)
+
+    return make_resp_obj(totp_match)
