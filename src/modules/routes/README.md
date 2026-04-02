@@ -16,7 +16,8 @@
 
 | Endpoint                                    | Method                        | File                         |
 | ------------------------------------------- | ----------------------------- | ---------------------------- |
-| `/api/dashboard/locale`                     | `GET`                         | `routes.py`                  |
+| `/api/dashboard/locale`                     | `GET` & `PATCH`               | `routes.py`                  |
+| `/api/dashboard/locale/available`           | `GET`                         | `routes.py`                  | 
 | `/api/dashboard/version`                    | `GET`                         | `routes.py`                  |
 | `/api/dashboard/theme`                      | `GET`                         | `routes.py`                  |
 | `/api/dashboard/update`                     | `GET`                         | `routes.py`                  |
@@ -30,6 +31,6 @@
 
 | Endpoint                                    | Method                        | File                         |
 | ------------------------------------------- | ----------------------------- | ---------------------------- |
-| `/api/dashboard/Wireguard/Interface`        | `GET`                         | `routes.py`                  |
+| `/api/dashboard/wireguard/interfaces`       | `GET`                         | `routes.py`                  |
 
 ## Uninplemented routes:

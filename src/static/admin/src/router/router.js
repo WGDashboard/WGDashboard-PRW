@@ -5,7 +5,7 @@ import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.
 
 const checkAuth = async () => {
 	let result = false
-	await fetchGet("/api/validateAuthentication", {}, (res) => {
+	await fetchGet("/api/auth/validate", {}, (res) => {
 		result = res.status
 	});
 	return result;

@@ -56,7 +56,7 @@ export default {
 			}
 		},
 		async connect(){
-			await fetch(`${this.server.host}/api/authenticate`, {
+			await fetch(`${this.server.host}/api/auth`, {
 				headers:  this.getHeaders,
 				body: JSON.stringify({
 					host: window.location.hostname

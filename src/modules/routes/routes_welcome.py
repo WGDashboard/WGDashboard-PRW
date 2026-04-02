@@ -57,7 +57,7 @@ def api_welcome_finish():
 
     return make_resp_obj()
 
-@routes_welcome.route('/api/welcome/totplink')
+@routes_welcome.route('/api/welcome/totplink', methods=["GET"])
 def api_welcome_get_totp():
     ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
     if not ok:

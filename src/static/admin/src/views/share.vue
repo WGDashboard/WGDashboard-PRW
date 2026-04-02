@@ -16,7 +16,7 @@ export default {
 		const theme = ref("");
 		const peerConfiguration = ref(undefined);
 		const blob = ref(new Blob())
-		await fetchGet("/api/getDashboardTheme", {}, (res) => {
+		await fetchGet("/api/dashboard/theme", {}, (res) => {
 			theme.value = res.data
 		});
 		

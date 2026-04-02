@@ -101,7 +101,7 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
     },
 	actions: {
 		async getConfigurations(){
-			await fetchGet("/api/getWireguardConfigurations", {}, (res) => {
+			await fetchGet("/api/dashboard/wireguard/interfaces", {}, (res) => {
 				if (res.status)  {
                     this.Configurations = res.data
                 }

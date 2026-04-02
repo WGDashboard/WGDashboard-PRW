@@ -16,22 +16,28 @@ export default {
 		}
 	},
 	mounted() {
-		fetchGet("/api/locale/available", {}, (res) => {
+		fetchGet("/api/dashboard/locale/available", {}, (res) => {
 			this.languages = res.data;
 		})
 	},
 	methods: {
 		changeLanguage(lang_id){
-			fetchPost("/api/locale/update", {
-				lang_id: lang_id
-			}, (res) => {
+			fetch("/api/dashboard/locale", {
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ lang_id: lang_id }),
+			})
+			.then(res => res.json())
+			.then(res => {
 				if (res.status){
 					this.store.Configuration.server.wgdashboard_language = lang_id;
-					this.store.Locale = res.data
-				}else{
-					this.store.newMessage("Server", "WGDashboard language update failed", "danger")
+					this.store.Locale = res.data;
+				} else {
+					this.store.newMessage("Server", "WGDashboard failed to update the language", "danger")
 				}
-			})
+			});
 		}
 	},
 	computed:{

@@ -10,12 +10,12 @@ if (window.IS_WGDASHBOARD_DESKTOP){
 	store.IsElectronApp = true;
 	store.CrossServerConfiguration.Enable = true;
 	if (store.ActiveServerConfiguration){
-		fetchGet("/api/locale", {}, (res) => {
+		fetchGet("/api/dashboard/locale", {}, (res) => {
 			store.Locale = res.data
 		})
 	}
 }else{
-	fetchGet("/api/locale", {}, (res) => {
+	fetchGet("/api/dashboard/locale", {}, (res) => {
 		store.Locale = res.data
 	})
 }

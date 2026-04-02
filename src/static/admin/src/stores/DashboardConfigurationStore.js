@@ -60,7 +60,7 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 		async setActiveCrossServer(key){
 			this.ActiveServerConfiguration = key;
 			localStorage.setItem('ActiveCrossServerConfiguration', key)
-			await fetchGet("/api/locale", {}, (res) => {
+			await fetchGet("/api/dashboard/locale", {}, (res) => {
 				this.Locale = res.data
 			})
 		},

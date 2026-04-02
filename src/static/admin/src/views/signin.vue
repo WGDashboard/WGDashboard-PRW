@@ -18,13 +18,13 @@ export default {
 		let version = undefined;
 		if (!store.IsElectronApp){
 			await Promise.all([
-				fetchGet("/api/getDashboardTheme", {}, (res) => {
+				fetchGet("/api/dashboard/theme", {}, (res) => {
 					theme = res.data
 				}),
-				fetchGet("/api/isTotpEnabled", {}, (res) => {
+				fetchGet("/api/dashboard/totp", {}, (res) => {
 					totpEnabled = res.data
 				}),
-				fetchGet("/api/getDashboardVersion", {}, (res) => {
+				fetchGet("/api/dashboard/version", {}, (res) => {
 					version = res.data
 				})
 			]);
@@ -60,7 +60,7 @@ export default {
 		async auth(){
 			if (this.formValid){
 				this.loading = true
-				await fetchPost("/api/authenticate", this.data, (response) => {
+				await fetchPost("/api/auth", this.data, (response) => {
 					if (response.status){
 						this.loginError = false;
 						this.$refs["signInBtn"].classList.add("signedIn")

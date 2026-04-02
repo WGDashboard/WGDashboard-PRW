@@ -64,7 +64,7 @@ router.beforeEach(async (to, from, next) => {
 		store.newNotification("Sign in session ended, please sign in again", "warning")
 	}else{
 		if (to.meta.auth){
-			const status = await axiosGet('/api/validateAuthentication')
+			const status = await axiosGet('/api/auth/validate')
 			if (status){
 				next()
 			}else{

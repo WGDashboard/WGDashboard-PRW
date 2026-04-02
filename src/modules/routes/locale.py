@@ -40,11 +40,26 @@ class localeman:
                 return json.load(lang_file)
         return None
 
-#    def update_language(self, lang_id):
-#        path = os.path.join(self.locale_path, f"{lang_id}.json")
-#
-#        if not os.path.isfile(path):
-#            lang_id = "en"
-#
-#        util.set_config(self.wgd_config, "Server", "dashboard_language", lang_id)
-#        return self.get_language()
+    def get_available_languages():
+        available_languages_path = "./static/locales/supported_locales.json"
+
+        with open(os.path.join(available_languages_path), "r") as f:
+            language_data = json.load(f)
+
+        available_languages = sorted(language_data, key=lambda x: x['lang_name'])
+
+        return available_languages
+
+    def update_language(self, lang_id) -> bool:
+        path = os.path.join(self.locale_path, f"{lang_id}.json")
+
+        if not os.path.isfile(path):
+            lang_id = "en"
+
+        config.update("SERVER", "wgdashboard_language", lang_id)
+        # Very important to also refresh the config in-memory
+        ok, flask.current_app.wgd_config = config.read()
+        if not ok:
+            log.error("failed to refresh the in-memory configuration")
+            return make_resp_obj(False, 'Internal error', {}, 500)
+        return self.get_language()
