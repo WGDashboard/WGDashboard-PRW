@@ -4,7 +4,7 @@
 
 | Endpoint                         | Method                        | File                         |
 | -------------------------------- | ----------------------------- | ---------------------------- |
-| `/api/welcome/Finish`            | `POST`                        | `routes_welcome.py`          |
+| `/api/welcome/finish`            | `POST`                        | `routes_welcome.py`          |
 | `/api/welcome/verifytotp`        | `POST`                        | `routes_welcome.py`          |
 | `/api/welcome/totplink`          | `GET`                         | `routes_welcome.py`          |
 
