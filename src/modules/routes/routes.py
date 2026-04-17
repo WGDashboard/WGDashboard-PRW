@@ -29,8 +29,9 @@ white_list = [
     "/static/",
     "/api/auth",
     "/api/auth/validate",
+    "/api/auth/totp", # Need a GET to see if TOTP is enabled
     "/api/dashboard/locale",
-    "/api/dashboard/configuration",
+    # "/api/dashboard/configuration",
     "/api/dashboard/theme",
     "/api/dashboard/version",
     "/api/dashboard/totp",
@@ -49,6 +50,7 @@ def authentication_required():
 
     auth_required_flag = config_server.get('auth_req', True)
     api_key_enabled = config_server.get("wgdashboard_apikey", False)
+    app_prefix = config_server.get("app_prefix", "")
 
     if not auth_required_flag:
         return
@@ -64,7 +66,11 @@ def authentication_required():
 
     if flask.session.get("role") == "admin":
         return
-
+    
+    # Handle Client Dashboard Path
+    if path.startswith(f'{app_prefix}/client'):
+        return
+    
     if routes_utils.is_path_allowed(path, white_list, flask.session):
         return
 

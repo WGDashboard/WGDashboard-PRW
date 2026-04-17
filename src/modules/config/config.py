@@ -8,9 +8,9 @@ from .config_utils import config_utils
 class config():
     @staticmethod
     def filter(config_data: dict, filter_keyword: str) -> tuple[bool, dict]:
-        '''
+        """
         Helper function to grab a specific part of the config
-        '''
+        """
         lower_filter_keyword = filter_keyword.lower()
 
         for section_name, section_values in config_data.items():
@@ -23,9 +23,9 @@ class config():
 
     @staticmethod
     def read() -> tuple[bool, dict]:
-        '''
+        """
         check some basic things and then return the dict containing the config data
-        '''
+        """
 
         ok, candidate_path = config_utils.search_known_paths()
         if not ok:
@@ -46,7 +46,7 @@ class config():
 
         ok, config_data = config.read()
         if not ok:
-            log.error("failed to read the config succesfully")
+            log.error("failed to read the config successfully")
             return False
         
         if not config_utils.find_section(config_data, lower_target_section):

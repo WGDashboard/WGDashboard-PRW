@@ -8,9 +8,9 @@ import os
 class config_utils():
     @staticmethod
     def search_known_paths() -> tuple[bool, str]:
-        '''
+        """
         Look at predefined paths on the filesystem for a config file
-        '''
+        """
 
         possible_config_locations = [
             "./config.ini",
