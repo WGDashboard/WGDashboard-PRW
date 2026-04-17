@@ -40,7 +40,7 @@ class localeman:
                 return json.load(lang_file)
         return None
 
-    def get_available_languages():
+    def get_available_languages(self):
         available_languages_path = "./static/locales/supported_locales.json"
 
         with open(os.path.join(available_languages_path), "r") as f:
