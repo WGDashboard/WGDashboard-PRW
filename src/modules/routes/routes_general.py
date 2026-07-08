@@ -20,7 +20,7 @@ from ..config.config import config
 from ..utilities.utilities import utilities
 from ..utilities.statistics import statistics
 
-routes = flask.Blueprint("routes", __name__)
+routes_general = flask.Blueprint("routes_general", __name__)
 
 white_list = [
     "/",
@@ -37,7 +37,7 @@ white_list = [
     "sharePeer/get",
 ]
 
-@routes.before_request
+@routes_general.before_request
 def authentication_required():
     if flask.request.method.lower() == "options":
         return make_resp_obj(True, "", {"status": True}, 200)
@@ -70,11 +70,7 @@ def authentication_required():
 
     return make_resp_obj(False, "Unauthorized access", {}, 401)
 
-@routes.route('/', methods=["GET"])
-def index_handler():
-        return flask.render_template("index.html")
-
-@routes.route('/api/auth', methods=["POST"])
+@routes_general.route('/api/authenticate', methods=["POST"])
 def api_authenticate():
     ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
@@ -177,7 +173,18 @@ def api_authenticate():
     else:
         return make_resp_obj(False, "Sorry, your username or password is incorrect.", {}, 401)
 
-@routes.route('/api/auth/validate', methods=["GET"])
+@routes_general.route('/')
+def index_handler():
+        return flask.render_template("index.html")
+
+@routes_general.route('/api/locale')
+def api_locale_handler():
+    locale_manager = localeman()
+    locale_data = locale_manager.get_language()
+
+    return make_resp_obj(True, "", locale_data, 200)
+
+@routes_general.route('/api/validateAuthentication')
 def api_validate_auth():
     ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
@@ -192,36 +199,8 @@ def api_validate_auth():
             return make_resp_obj(False, "Invalid authentication", {}, 200)
     return make_resp_obj()
 
-@routes.route('/api/dashboard/locale', methods=["GET"])
-def api_retrieve_locale():
-    locale_manager = localeman()
-    locale_data = locale_manager.get_language()
-
-    return make_resp_obj(True, "", locale_data, 200)
-
-@routes.route('/api/dashboard/locale', methods=["PATCH"])
-def api_locale_update():
-    req_data = flask.request.get_json()
-    if "lang_id" not in req_data.keys():
-        return make_resp_obj(False, "Please specify a language id: lang_id")
-
-    language_id = req_data.get("lang_id")
-
-    locale_manager = localeman
-    ok = locale_manager.update_language(language_id)
-    if not ok:
-        return make_resp_obj(False, "Failed to update the language id")
-    
-    locale_data = locale_manager.get_language()
-    return make_resp_obj(True, "", locale_data)
-
-@routes.route('/api/dashboard/locale/available', methods=["GET"])
-def api_retrieve_available_locales():
-    locale_manager = localeman()
-
-
-@routes.route('/api/dashboard/version', methods=["GET"])
-def api_retrieve_version():
+@routes_general.route('/api/getDashboardVersion')
+def api_retrieve_dashboard_version():
     ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
@@ -229,8 +208,8 @@ def api_retrieve_version():
     
     return make_resp_obj(True, "", config_server.get("version"))
 
-@routes.route('/api/dashboard/theme', methods=["GET"])
-def api_retrieve_theme():
+@routes_general.route('/api/getDashboardTheme')
+def api_retrieve_dashboard_theme():
     ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
@@ -238,16 +217,26 @@ def api_retrieve_theme():
 
     return make_resp_obj(True, "", config_server.get("wgdashboard_theme"), 200)
 
-@routes.route('/api/dashboard/updatestatus', methods=["GET"])
-def api_retrieve_update_status():
-    utilities.update_available()
-    return make_resp_obj()
+@routes_general.route('/api/getDashboardUpdate')
+def api_retrieve_dashboard_update():
+    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    if not ok:
+        log.error("failed to filter the config in-memory")
+        return make_resp_obj(False, "Internal error", {}, 500)
 
-@routes.route('/api/dashboard/configuration', methods=["GET"])
-def api_retrieve_config():
+    ok, upgradable, latest_version_link = utilities.update_info(config_server.get("version"))
+    if ok and upgradable:
+        return make_resp_obj(True, 'There is an update available for this instance', data=latest_version_link)
+    elif ok and not upgradable:
+        return make_resp_obj(True, 'This instance is running the latest version')
+    else:
+        return make_resp_obj(False)
+
+@routes_general.route('/api/getDashboardConfiguration')
+def api_retrieve_dashboard_config():
     return make_resp_obj(data=flask.current_app.wgd_config)
 
-@routes.route('/api/dashboard/totp', methods=["GET"])
+@routes_general.route('/api/isTotpEnabled')
 def api_totp_status():
     ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
     if not ok:
@@ -258,7 +247,7 @@ def api_totp_status():
     
     return make_resp_obj(True, "", data, 200)
 
-@routes.route('/api/dashboard/wireguard/interfaces', methods=["GET"])
+@routes_general.route('/api/getWireguardConfigurations')
 def api_retrieve_wireguard_configurations():
     ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
     if not ok:
@@ -277,12 +266,12 @@ def api_retrieve_wireguard_configurations():
     
     return make_resp_obj(True, 'Wireguard', {}, 200)
 
-@routes.route('/api/dashboard/statistics', methods=["GET"])
+@routes_general.route('/api/systemStatus')
 def api_system_status():
     status = statistics()
     return make_resp_obj(True, "", status.to_json(), 200)
 
-@routes.route('/health', methods=["GET"])
-@routes.route('/healthz', methods=["GET"])
+@routes_general.route('/health', methods=["GET"])
+@routes_general.route('/healthz', methods=["GET"])
 def health_handler():
     return make_resp_obj(True, "Health Endpoint", {"status": "ok"}, 200)

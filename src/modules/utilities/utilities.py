@@ -2,9 +2,11 @@
 
 import logging as log
 
+import json
 import os
 import urllib.request
-import json
+
+from packaging import version
 
 class utilities():
     @staticmethod
@@ -25,11 +27,22 @@ class utilities():
             return False
     
     @staticmethod
-    def update_available() -> bool:
+    def update_info(running_version: str) -> tuple[bool, bool, str]:
         request = urllib.request.urlopen("https://api.github.com/repos/WGDashboard/WGDashboard/releases/latest", timeout=5).read()
 
         data = json.loads(request)
-        log.info(data)
+        latest_version = data.get('tag_name')
+        latest_version_link = data.get('html_url')
+
+        try:
+            if version.parse(latest_version) > version.parse(running_version):
+                log.info('there is an update available for this instance')
+                return True, True, latest_version_link
+            else:
+                log.info('this instance is running the latest version')
+                return True, False, latest_version_link
+        except:
+            return False, False, ''
 
     @staticmethod
     def ProtocolsEnabled() -> list[str]:

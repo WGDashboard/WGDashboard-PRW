@@ -39,7 +39,6 @@ export default {
 				password: "",
 				totp: "",
 			},
-			loginError: false,
 			loginErrorMessage: "",
 			loading: false
 		}
@@ -57,6 +56,7 @@ export default {
 	},
 	methods: {
 		GetLocale,
+<<<<<<< HEAD
 		async auth(){
 			if (this.formValid){
 				this.loading = true
@@ -72,27 +72,41 @@ export default {
 							}else{
 								this.$router.push('/')
 							}
+=======
+		async auth() {
+			if (!this.formValid) {
+				return;
+			}
+
+			this.loading = true;
+
+			try {
+				await fetchPost("/api/authenticate", this.data, (response) => {
+					if (response.status) {
+						this.$refs.signInBtn.classList.add("signedIn");
+
+						if (response.message) {
+							this.$router.push("/welcome");
+						} else if (this.store.Redirect) {
+							this.$router.push(this.store.Redirect);
+						} else {
+							this.$router.push("/");
+>>>>>>> b5c0236 (chore: rework update checking and minor changes in files)
 						}
-					}else{
-						this.store.newMessage("Server", response.message, "danger")
-						document.querySelectorAll("input[required]").forEach(x => {
-							x.classList.remove("is-valid")
-							x.classList.add("is-invalid")
-						});
-						this.loading = false
-					}
-					
-				})
-			}else{
-				document.querySelectorAll("input[required]").forEach(x => {
-					if (x.value.length === 0){
-						x.classList.remove("is-valid")
-						x.classList.add("is-invalid")
-					}else{
-						x.classList.remove("is-invalid")
-						x.classList.add("is-valid")
+					} else {
+						this.store.newMessage("Server", "Failed to authenticate", "danger");
 					}
 				});
+			} catch (err) {
+				this.store.newMessage(
+					"Server",
+					"Unable to contact the server.",
+					"danger"
+				);
+
+				console.error(err);
+			} finally {
+				this.loading = false;
 			}
 		}
 	}

@@ -4,7 +4,6 @@ import psutil
 import shutil
 import subprocess
 import time
-import flask
 
 import psutil, shutil, subprocess, time
 from flask import current_app
@@ -33,19 +32,19 @@ class statistics:
 
     def retrieve_memory_stats(self):
         try:
-            v = psutil.virtual_memory()
-            s = psutil.swap_memory()
+            virtmem = psutil.virtual_memory()
+            swapmem = psutil.swap_memory()
 
             return {
                 "VirtualMemory": {
-                    "total": v.total,
-                    "available": v.available,
-                    "percent": v.percent
+                    "total": virtmem.total,
+                    "available": virtmem.available,
+                    "percent": virtmem.percent
                 },
                 "SwapMemory": {
-                    "total": s.total,
-                    "available": s.free,
-                    "percent": s.percent
+                    "total": swapmem.total,
+                    "available": swapmem.free,
+                    "percent": swapmem.percent
                 }
             }
         except Exception as e:
@@ -56,14 +55,14 @@ class statistics:
         disks = []
         try:
             for p in psutil.disk_partitions():
-                d = psutil.disk_usage(p.mountpoint)
+                diskuse = psutil.disk_usage(p.mountpoint)
 
                 disks.append({
                     "mountPoint": p.mountpoint,
-                    "total": d.total,
-                    "used": d.used,
-                    "free": d.free,
-                    "percent": d.percent
+                    "total": diskuse.total,
+                    "used": diskuse.used,
+                    "free": diskuse.free,
+                    "percent": diskuse.percent
                 })
         except Exception as e:
             current_app.logger.error("Disk error %s", e)

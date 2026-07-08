@@ -14,7 +14,7 @@ from modules.database.database import database
 from modules.utilities.utilities import utilities as util
 from modules.utilities.logger import setup_logger
 
-from modules.routes.routes import routes
+from modules.routes.routes_general import routes_general
 from modules.routes.routes_welcome import routes_welcome
 
 if __name__ == '__main__':
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         template_folder=os.path.abspath("./static/dist/WGDashboardAdmin"),
         static_folder=os.path.abspath("./static/dist/WGDashboardAdmin")
     )
-    app.register_blueprint(routes, url_prefix=prefix)
+    app.register_blueprint(routes_general, url_prefix=prefix)
     app.register_blueprint(routes_welcome, url_prefix=prefix)
 
     app.wgd_config = config_data
