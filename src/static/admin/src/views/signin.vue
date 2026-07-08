@@ -56,23 +56,6 @@ export default {
 	},
 	methods: {
 		GetLocale,
-<<<<<<< HEAD
-		async auth(){
-			if (this.formValid){
-				this.loading = true
-				await fetchPost("/api/auth", this.data, (response) => {
-					if (response.status){
-						this.loginError = false;
-						this.$refs["signInBtn"].classList.add("signedIn")
-						if (response.message){
-							this.$router.push('/welcome')
-						}else{
-							if (this.store.Redirect !== undefined){
-								this.$router.push(this.store.Redirect)
-							}else{
-								this.$router.push('/')
-							}
-=======
 		async auth() {
 			if (!this.formValid) {
 				return;
@@ -91,7 +74,6 @@ export default {
 							this.$router.push(this.store.Redirect);
 						} else {
 							this.$router.push("/");
->>>>>>> b5c0236 (chore: rework update checking and minor changes in files)
 						}
 					} else {
 						this.store.newMessage("Server", "Failed to authenticate", "danger");
