@@ -22,6 +22,16 @@ npm install
 npm run dev
 ```
 
+The development server forwards `/client` requests to `http://wg.local:10086/`.
+The target is configured in the tracked [proxy.js](./proxy.js) module, which must
+be present even when running tests or production builds.
+
+### Run Unit Tests
+
+```sh
+npm test
+```
+
 ### Compile and Minify for Production
 
 ```sh
