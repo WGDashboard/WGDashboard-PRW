@@ -5,7 +5,6 @@ import sqlalchemy.orm
 
 import json
 
-from .schema import Base
 from .schema import Apikeys, User
 
 class functions():

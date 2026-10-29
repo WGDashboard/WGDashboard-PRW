@@ -4,6 +4,7 @@ import logging as log
 
 import sqlalchemy
 import sqlalchemy.orm
+from sqlalchemy.exc import SQLAlchemyError
 
 from .schema import Base
 from .database_utils import database_utils
@@ -37,6 +38,6 @@ class database():
 
             return True
 
-        except Exception as err:
-            log.error('failed to verify contents of the database')
+        except SQLAlchemyError:
+            log.exception('failed to verify contents of the database')
             return False

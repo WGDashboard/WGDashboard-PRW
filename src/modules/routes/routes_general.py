@@ -5,16 +5,14 @@ import logging as log
 import bcrypt
 import flask
 import hashlib
-import json
 import os
-import werkzeug
+import pyotp
 from datetime import datetime
 
 from .response import make_resp_obj
 from .routes_utils import routes_utils
 from .locale import localeman
 
-from ..database.functions import functions
 from ..config.config import config
 
 from ..utilities.utilities import utilities
@@ -24,17 +22,15 @@ routes_general = flask.Blueprint("routes_general", __name__)
 
 white_list = [
     "/",
-    "/favicon.ico",
-    "/client",
-    "/static/",
-    "/api/auth",
-    "/api/auth/validate",
-    "/api/dashboard/locale",
-    "/api/dashboard/configuration",
-    "/api/dashboard/theme",
-    "/api/dashboard/version",
-    "/api/dashboard/totp",
-    "sharePeer/get",
+    "/web/",
+    "/api/authenticate",
+    "/api/validateAuthentication",
+    "/api/locale",
+    "/api/getDashboardVersion",
+    "/api/getDashboardTheme",
+    "/api/isTotpEnabled",
+    "/health",
+    "/healthz",
 ]
 
 @routes_general.before_request
@@ -42,18 +38,21 @@ def authentication_required():
     if flask.request.method.lower() == "options":
         return make_resp_obj(True, "", {"status": True}, 200)
 
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, "Internal error", {}, 500)
 
-    auth_required_flag = config_server.get('auth_req', True)
+    auth_required_flag = config_server.get('authentication_required', True)
     api_key_enabled = config_server.get("wgdashboard_apikey", False)
 
     if not auth_required_flag:
         return
 
     path = flask.request.path
+    app_prefix = flask.current_app.config["APP_PREFIX"]
+    if app_prefix and path.startswith(f"{app_prefix}/"):
+        path = path[len(app_prefix):]
     api_key = flask.request.headers.get("wgdashboard-apikey")
 
     if api_key and api_key_enabled:
@@ -65,14 +64,18 @@ def authentication_required():
     if flask.session.get("role") == "admin":
         return
 
-    if routes_utils.is_path_allowed(path, white_list, flask.session):
+    is_admin_session = (
+        flask.session.get("role") == "admin"
+        and "username" in flask.session
+    )
+    if routes_utils.is_path_allowed(path, white_list, is_admin_session):
         return
 
     return make_resp_obj(False, "Unauthorized access", {}, 401)
 
 @routes_general.route('/api/authenticate', methods=["POST"])
 def api_authenticate():
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, "Internal error", {}, 500)
@@ -81,7 +84,7 @@ def api_authenticate():
 
     # Authentication disabled
     if not auth_required_flag:
-        ok, config_other = config.filter(flask.current_app.wgd_config, 'OTHER')
+        ok, config_other = config.filter(flask.current_app.config["WGD_CONFIG"], 'OTHER')
         if not ok:
             log.error("failed to filter the config in-memory")
             return make_resp_obj(False, "Internal error", {}, 500)
@@ -108,7 +111,7 @@ def api_authenticate():
             return make_resp_obj(False, "API key invalid", {}, 401)
 
     # Load account config
-    ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
+    ok, config_account = config.filter(flask.current_app.config["WGD_CONFIG"], 'ACCOUNT')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, "Internal error", {}, 500)
@@ -121,13 +124,16 @@ def api_authenticate():
     password = req_data.get("password")
     totp_code = req_data.get("totp")
 
-    #stored_user_objects = functions.retrieve_user_objects(flask.current_app.db_session)
-    #print(stored_user_objects)
-
     stored_username = config_account.get("username")
     stored_password = config_account.get("password")
     totp_enabled = config_account.get("enable_totp", False)
     totp_key = config_account.get("totp_key")
+
+    if not isinstance(username, str) or not isinstance(password, str):
+        return make_resp_obj(False, "Invalid request body", {}, 400)
+    if not isinstance(stored_password, str):
+        log.error("the configured account password is missing or invalid")
+        return make_resp_obj(False, "Internal error", {}, 500)
 
     # Validate password
     valid = bcrypt.checkpw(
@@ -138,7 +144,9 @@ def api_authenticate():
     # Validate TOTP
     totp_valid = False
     if totp_enabled:
-        totp_valid = pyotp.TOTP(totp_key).now() == totp_code
+        if not isinstance(totp_key, str) or not isinstance(totp_code, str):
+            return make_resp_obj(False, "Invalid username, password, or OTP.", {}, 401)
+        totp_valid = pyotp.TOTP(totp_key).verify(totp_code)
 
     if (
         valid
@@ -155,10 +163,14 @@ def api_authenticate():
         # Log success via your helper if available
         log.info(f"Login success: {username} from {flask.request.remote_addr}")
 
-        ok, config_other = config.filter(flask.current_app.wgd_config, 'OTHER')
-        welcome_msg = config_other.get("welcome_session", "Welcome back!") if ok else "Welcome!"
-
-        resp = make_resp_obj(True, {"status": True}, 200)
+        ok, config_other = config.filter(flask.current_app.config["WGD_CONFIG"], 'OTHER')
+        welcome_session_enabled = config_other.get("welcome_session", False) if ok else False
+        resp = make_resp_obj(
+            True,
+            "Login successful",
+            {"welcome_session": welcome_session_enabled},
+            200,
+        )
         resp.set_cookie("authToken", authentication_token, httponly=True, samesite='Lax')
         return resp
 
@@ -167,11 +179,6 @@ def api_authenticate():
     
     error_msg = "Invalid username, password, or OTP." if totp_enabled else "Invalid username or password."
     return make_resp_obj(False, error_msg, {"status": False}, 401)
-
-    if totp_enabled:
-            return make_resp_obj(False, "Sorry, your username, password or OTP is incorrect.", {}, 401)
-    else:
-        return make_resp_obj(False, "Sorry, your username or password is incorrect.", {}, 401)
 
 @routes_general.route('/')
 def index_handler():
@@ -186,12 +193,12 @@ def api_locale_handler():
 
 @routes_general.route('/api/validateAuthentication')
 def api_validate_auth():
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
 
-    auth_required_flag = config_server.get('auth_req', True)
+    auth_required_flag = config_server.get('authentication_required', True)
     token = flask.request.cookies.get("authToken")
 
     if auth_required_flag:
@@ -201,7 +208,7 @@ def api_validate_auth():
 
 @routes_general.route('/api/getDashboardVersion')
 def api_retrieve_dashboard_version():
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
@@ -210,7 +217,7 @@ def api_retrieve_dashboard_version():
 
 @routes_general.route('/api/getDashboardTheme')
 def api_retrieve_dashboard_theme():
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
@@ -219,12 +226,17 @@ def api_retrieve_dashboard_theme():
 
 @routes_general.route('/api/getDashboardUpdate')
 def api_retrieve_dashboard_update():
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, "Internal error", {}, 500)
 
-    ok, upgradable, latest_version_link = utilities.update_info(config_server.get("version"))
+    running_version = config_server.get("version")
+    if not isinstance(running_version, str):
+        log.error("the configured WGDashboard version is missing or invalid")
+        return make_resp_obj(False, "Internal error", {}, 500)
+
+    ok, upgradable, latest_version_link = utilities.update_info(running_version)
     if ok and upgradable:
         return make_resp_obj(True, 'There is an update available for this instance', data=latest_version_link)
     elif ok and not upgradable:
@@ -234,11 +246,11 @@ def api_retrieve_dashboard_update():
 
 @routes_general.route('/api/getDashboardConfiguration')
 def api_retrieve_dashboard_config():
-    return make_resp_obj(data=flask.current_app.wgd_config)
+    return make_resp_obj(data=flask.current_app.config["WGD_CONFIG"])
 
 @routes_general.route('/api/isTotpEnabled')
 def api_totp_status():
-    ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
+    ok, config_account = config.filter(flask.current_app.config["WGD_CONFIG"], 'ACCOUNT')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
@@ -249,7 +261,7 @@ def api_totp_status():
 
 @routes_general.route('/api/getWireguardConfigurations')
 def api_retrieve_wireguard_configurations():
-    ok, config_server = config.filter(flask.current_app.wgd_config, 'SERVER')
+    ok, config_server = config.filter(flask.current_app.config["WGD_CONFIG"], 'SERVER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)

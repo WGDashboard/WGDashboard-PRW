@@ -11,12 +11,12 @@ updates:
       interval: "weekly"
 
   - package-ecosystem: "npm"
-    directory: "/src/static/admin"
+    directory: "/src/web/admin"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "npm"
-    directory: "/src/static/client"
+    directory: "/src/web/client"
     schedule:
       interval: "weekly"
 

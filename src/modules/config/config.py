@@ -1,9 +1,9 @@
 #!/bin/env python3
 
 import logging as log
-import flask
 
 from .config_utils import config_utils
+from .legacy_keys import LEGACY_CONFIG_KEYS, normalize_config_keys
 
 class config():
     @staticmethod
@@ -37,12 +37,16 @@ class config():
             log.error("failed to read data from filepath")
             return False, {}
 
-        return True, config_data
+        return True, normalize_config_keys(config_data)
 
     @staticmethod
     def update(target_section: str, target_key: str, new_value) -> bool:
         lower_target_section = target_section.lower()
         lower_target_key = target_key.lower()
+        lower_target_key = LEGACY_CONFIG_KEYS.get(
+            (lower_target_section, lower_target_key),
+            lower_target_key,
+        )
 
         ok, config_data = config.read()
         if not ok:

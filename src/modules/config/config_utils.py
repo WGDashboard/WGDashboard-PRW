@@ -13,7 +13,9 @@ class config_utils():
         '''
 
         possible_config_locations = [
+            "./wg-dashboard.ini",
             "./config.ini",
+            "./src/config.ini",
             f"{os.getenv('HOME')}/.config/wgdashboard/config.ini",
             "/etc/wgdashboard/config.ini",
         ]
@@ -26,7 +28,7 @@ class config_utils():
                     continue
             return False, ''
 
-        except Exception as err:
+        except OSError:
             return False, ''
 
     @staticmethod
@@ -58,7 +60,7 @@ class config_utils():
             
             return True, config_dict
 
-        except cp.ParsingError as err:
+        except cp.ParsingError:
             return False, {}
 
     @staticmethod

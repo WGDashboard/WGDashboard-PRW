@@ -1,6 +1,7 @@
-
+reference/
 *.db
 dist
+/src/secret_key
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

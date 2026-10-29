@@ -1,0 +1,53 @@
+[project]
+name = "wgdashboard"
+version = "0.1.0"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "alembic>=1.13,<2",
+    "pytest>=8",
+    "pyright>=1.1",
+    "ruff>=0.11",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+# The incomplete statistics module remains assigned to WS-4.
+extend-exclude = ["reference", "src/web", "src/modules/utilities/statistics.py"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.pyright]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+# Keep the initial WS-0 type gate focused on the foundation modules and tests.
+include = [
+    "src/main.py",
+    "src/gunicorn.conf.py",
+    "src/modules/config/config.py",
+    "src/modules/config/config_utils.py",
+    "src/modules/config/legacy_keys.py",
+    "src/modules/database/database_utils.py",
+    "src/modules/database/schema.py",
+    "src/modules/routes/locale.py",
+    "src/modules/routes/routes_general.py",
+    "src/modules/routes/routes_utils.py",
+    "src/modules/routes/routes_welcome.py",
+    "src/modules/utilities/utilities.py",
+    "tests",
+]
+exclude = [
+    "src/modules/database/alembic",
+    "src/modules/database/database.py",
+    "src/modules/database/functions.py",
+]
+venvPath = "."
+venv = ".venv"

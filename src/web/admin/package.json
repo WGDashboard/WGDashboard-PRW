@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build --emptyOutDir",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "format": "prettier --write 'src/**/*.{js,vue,css}'",
     "buildcommitpush": "./build.sh",
     "build electron": "vite build --emptyOutDir && vite build --mode electron && cd ../../../../WGDashboard-Desktop && /opt/homebrew/bin/npm run \"electron dist\"",
     "preview": "vite preview"
@@ -40,8 +43,15 @@
     "vue-router": "^5.0.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/parser": "^8.72.1",
     "@vitejs/plugin-vue": "^6.0.5",
-    "vite": "^8.0.3"
+    "eslint": "^10.13.0",
+    "eslint-plugin-vue": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "vite": "^8.0.3",
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "tar": "^7.5.6"

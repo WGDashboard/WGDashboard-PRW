@@ -2,25 +2,16 @@ import logging as log
 
 import bcrypt
 import flask
-import hashlib
-import json
 import pyotp
-import os
-import werkzeug
-from datetime import datetime
 
 from .response import make_resp_obj
-from .routes_utils import routes_utils
-from .locale import localeman
-
-from ..database.functions import functions
 from ..config.config import config
 
 routes_welcome = flask.Blueprint("routes_welcome", __name__)
 
 @routes_welcome.route('/api/welcome/Finish', methods=["POST"])
 def api_welcome_finish():
-    ok, config_other = config.filter(flask.current_app.wgd_config, 'OTHER')
+    ok, config_other = config.filter(flask.current_app.config["WGD_CONFIG"], 'OTHER')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
@@ -50,16 +41,17 @@ def api_welcome_finish():
         return make_resp_obj(False, 'Internal error', {}, 500)
 
     # Very important to also refresh the config in-memory
-    ok, flask.current_app.wgd_config = config.read()
+    ok, refreshed_config = config.read()
     if not ok:
         log.error("failed to refresh the in-memory configuration")
         return make_resp_obj(False, 'Internal error', {}, 500)
+    flask.current_app.config["WGD_CONFIG"] = refreshed_config
 
     return make_resp_obj()
 
 @routes_welcome.route('/api/welcome/totplink', methods=["GET"])
 def api_welcome_get_totp():
-    ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
+    ok, config_account = config.filter(flask.current_app.config["WGD_CONFIG"], 'ACCOUNT')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
@@ -73,10 +65,11 @@ def api_welcome_get_totp():
             return make_resp_obj(False, 'Internal error', {}, 500)
         
         # Very important to also refresh the config in-memory
-        ok, flask.current_app.wgd_config = config.read()
+        ok, refreshed_config = config.read()
         if not ok:
             log.error("failed to refresh the in-memory configuration")
             return make_resp_obj(False, 'Internal error', {}, 500)
+        flask.current_app.config["WGD_CONFIG"] = refreshed_config
 
         return make_resp_obj(True, '', pyotp.totp.TOTP(totp_key).provisioning_uri(issuer_name="WGDashboard Admin"))
 
@@ -84,7 +77,7 @@ def api_welcome_get_totp():
 
 @routes_welcome.route('/api/welcome/verifytotplink', methods=["POST"])
 def api_welcome_verify_totp():
-    ok, config_account = config.filter(flask.current_app.wgd_config, 'ACCOUNT')
+    ok, config_account = config.filter(flask.current_app.config["WGD_CONFIG"], 'ACCOUNT')
     if not ok:
         log.error("failed to filter the config in-memory")
         return make_resp_obj(False, 'Internal error', {}, 500)
@@ -105,9 +98,10 @@ def api_welcome_verify_totp():
             return make_resp_obj(False, 'Internal error', {}, 500)
 
         # Very important to also refresh the config in-memory
-        ok, flask.current_app.wgd_config = config.read()
+        ok, refreshed_config = config.read()
         if not ok:
             log.error("failed to refresh the in-memory configuration")
             return make_resp_obj(False, 'Internal error', {}, 500)
+        flask.current_app.config["WGD_CONFIG"] = refreshed_config
 
     return make_resp_obj(totp_match)

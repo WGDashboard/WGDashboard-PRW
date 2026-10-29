@@ -1,9 +1,8 @@
 #!/bin/env python3
 
-import logging as log
+from pathlib import Path
 
-import os
-from urllib.parse import quote_plus
+from sqlalchemy.engine import URL
 
 from modules.utilities.utilities import utilities as util
 
@@ -14,30 +13,45 @@ class database_utils():
 
     @staticmethod
     def generate_connection_string(database_config: dict) -> tuple[bool, str]:
-        if not 'type' in database_config:
+        if "type" not in database_config:
             return False, ''
-
-        username = quote_plus(database_config.get('username', ''))
-        password = quote_plus(database_config.get('password', ''))
 
         match database_config['type']:
             case 'sqlite':
-                local_database_path = os.path.abspath("./database")
-
-                exists = util.ensure_directory(local_database_path)
-                if exists:
-                    connection_string = f'sqlite:///{local_database_path}/wgdashboard.db'
-                else:
+                local_database_path = Path("./database").resolve()
+                if not util.ensure_directory(str(local_database_path)):
                     return False, ''
+                connection_string = URL.create(
+                    "sqlite",
+                    database=str(local_database_path / "wgdashboard.db"),
+                ).render_as_string(hide_password=False)
 
             case 'postgresql' | 'postgres':
-                connection_string = f'postgresql+psycopg://{username}:{password}@{database_config.get('host', 'localhost')}:{database_config.get('port', '5432')}'
+                connection_string = URL.create(
+                    "postgresql+psycopg",
+                    username=database_config.get("username") or None,
+                    password=database_config.get("password") or None,
+                    host=database_config.get("host") or "localhost",
+                    port=int(database_config.get("port") or 5432),
+                ).render_as_string(hide_password=False)
 
             case 'mariadb':
-                connection_string = f'mariadb+mariadbconnector://{username}:{password}@{database_config.get('host', 'localhost')}:{database_config.get('port', '3306')}'
+                connection_string = URL.create(
+                    "mariadb+mariadbconnector",
+                    username=database_config.get("username") or None,
+                    password=database_config.get("password") or None,
+                    host=database_config.get("host") or "localhost",
+                    port=int(database_config.get("port") or 3306),
+                ).render_as_string(hide_password=False)
 
             case 'mysql':
-                connection_string = f'mysql+pymysql://{username}:{password}@{database_config.get('host', 'localhost')}:{database_config.get('port', '3306')}'
+                connection_string = URL.create(
+                    "mysql+pymysql",
+                    username=database_config.get("username") or None,
+                    password=database_config.get("password") or None,
+                    host=database_config.get("host") or "localhost",
+                    port=int(database_config.get("port") or 3306),
+                ).render_as_string(hide_password=False)
 
             case _:
                 return False, ''
